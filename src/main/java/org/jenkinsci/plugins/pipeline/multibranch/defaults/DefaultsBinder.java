@@ -24,23 +24,20 @@
 
 package org.jenkinsci.plugins.pipeline.multibranch.defaults;
 
+import java.util.List;
+
 import hudson.Extension;
 import hudson.model.*;
 import jenkins.model.Jenkins;
-import org.jenkinsci.lib.configprovider.ConfigProvider;
 import org.jenkinsci.lib.configprovider.model.Config;
-import org.jenkinsci.plugins.configfiles.ConfigFileStore;
-import org.jenkinsci.plugins.configfiles.GlobalConfigFiles;
+import org.jenkinsci.plugins.configfiles.*;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
-import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
-import org.jenkinsci.plugins.workflow.flow.FlowDefinitionDescriptor;
-import org.jenkinsci.plugins.workflow.flow.FlowExecution;
-import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
+import org.jenkinsci.plugins.workflow.flow.*;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowBranchProjectFactory;
 
-import java.util.List;
+import static org.jenkinsci.plugins.pipeline.multibranch.defaults.PipelineBranchDefaultsProjectFactory.SCRIPT;
 
 /**
  * Checks out the local default version of {@link WorkflowBranchProjectFactory#SCRIPT} in order if exist:
@@ -61,14 +58,18 @@ class DefaultsBinder extends FlowDefinition {
             throw new IllegalStateException("inappropriate context");
         }
 
+        WorkflowRun run = (WorkflowRun) exec;
+
         ConfigFileStore store = GlobalConfigFiles.get();
-        if (store != null) {
-            Config config = store.getById(PipelineBranchDefaultsProjectFactory.SCRIPT);
-            if (config != null) {
-                return new CpsFlowDefinition(config.content, false).create(handle, listener, actions);
-            }
+
+        final Config config = ConfigFiles.getByIdOrNull(run, SCRIPT);
+
+        if (config != null) {
+            return new CpsFlowDefinition(config.content, true).create(handle, listener, actions);
         }
-        throw new IllegalArgumentException("Default " + PipelineBranchDefaultsProjectFactory.SCRIPT + " not found. Check configuration.");
+
+        throw new IllegalArgumentException(
+            "Default " + SCRIPT + " not found. Check configuration.");
     }
 
     @Extension
@@ -76,7 +77,7 @@ class DefaultsBinder extends FlowDefinition {
 
         @Override
         public String getDisplayName() {
-            return "Pipeline script from default " + PipelineBranchDefaultsProjectFactory.SCRIPT;
+            return "Pipeline script from default " + SCRIPT;
         }
 
     }
